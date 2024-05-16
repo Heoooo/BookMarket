@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/mvc"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:webflow="http://www.springframework.org/schema/webflow-config"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/webflow-config
+		http://www.springframework.org/schema/webflow-config/spring-webflow-config.xsd">
+
+	<!-- DispatcherServlet Context: defines this servlet's request-processing infrastructure -->
+	
+	<!-- Enables the Spring MVC @Controller programming model -->
+	<annotation-driven enable-matrix-variables="true" validator="validator"/>
+
+	<!-- Handles HTTP GET requests for /resources/** by efficiently serving up static resources in the ${webappRoot}/resources directory -->
+	<resources mapping="/resources/**" location="/resources/" />
+
+	<!-- Resolves views selected for rendering by @Controllers to .jsp resources in the /WEB-INF/views directory -->
+	<beans:bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<beans:property name="prefix" value="/WEB-INF/views/" />
+		<beans:property name="suffix" value=".jsp" />
+	</beans:bean>
+	
+	<context:component-scan base-package="com.springmvc.*" />
+	
+	<beans:bean id="multipartResolver"
+				class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<beans:property name="maxUploadSize" value="10240000"/>			
+	</beans:bean>
+	
+	<beans:bean id="messageSource"
+				class="org.springframework.context.support.ResourceBundleMessageSource">
+		<beans:property name="basename" value="messages"/>
+		<beans:property name="defaultEncoding" value="UTF-8"/>			
+	</beans:bean>
+	
+	<beans:bean id="localeResolver"
+				class="org.springframework.web.servlet.i18n.SessionLocaleResolver">
+		<beans:property name="defaultLocale" value="ko"/>			
+	</beans:bean>
+	
+	<interceptors>
+		<beans:bean class="com.springmvc.interceptor.MonitoringInterceptor"/>
+		<beans:bean class="com.springmvc.interceptor.AuditingInterceptor"/>
+		<beans:bean class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor">
+			<beans:property name="paramName" value="language"/>
+		</beans:bean>
+	</interceptors>
+	
+	<beans:bean id="validator"
+				class="org.springframework.validation.beanvalidation.LocalValidatorFactoryBean">
+		<beans:property name="validationMessageSource" ref="messageSource"/>			
+	</beans:bean>
+	
+	<beans:bean id="unitsInStockValidator"
+				class="com.springmvc.validator.UnitsInStockValidator"/>
+	<beans:bean id="bookValidator" class="com.springmvc.validator.BookValidator">
+		<beans:property name="springValidators">
+			<beans:set>
+				<beans:ref bean="unitsInStockValidator"/>
+			</beans:set>
+		</beans:property>
+	</beans:bean>
+	
+	<webflow:flow-registry id="flowRegistry"
+			 flow-builder-services="flowBuilderServices">
+		<webflow:flow-location path="/WEB-INF/flows/order/order-flow.xml" id="order"/>
+	</webflow:flow-registry>
+	
+	<webflow:flow-executor id="flowExecutor" flow-registry="flowRegistry"/>
+	
+	<beans:bean id="flowHandlerMapping"
+				class="org.springframework.webflow.mvc.servlet.FlowHandlerMapping">
+		<beans:property name="flowRegistry" ref="flowRegistry"/>			
+	</beans:bean>
+	
+	<beans:bean id="flowHandlerAdapter"
+				class="org.springframework.webflow.mvc.servlet.FlowHandlerAdapter">
+		<beans:property name="flowExecutor" ref="flowExecutor"/>			
+	</beans:bean>
+	
+	<beans:bean id="tilesViewResolver"
+				class="org.springframework.web.servlet.view.UrlBasedViewResolver">
+		<beans:property name="viewClass"
+						value="org.springframework.web.servlet.view.tiles3.TilesView"/>
+		<beans:property name="order" value="1"/>
+	</beans:bean>
+	
+	<beans:bean id="tilesConfigurer"
+				class="org.springframework.web.servlet.view.tiles3.TilesConfigurer">
+		<beans:property name="definitions" value="/WEB-INF/tiles/tiles.xml"/>	
+	</beans:bean>
+	
+	<webflow:flow-builder-services id="flowBuilderServices"
+			 view-factory-creator="viewFactoryCreator"/>
+	<beans:bean id="viewFactoryCreator"
+				class="org.springframework.webflow.mvc.builder.MvcViewFactoryCreator">
+		<beans:property name="viewResolvers" ref="tilesViewResolver"/>			
+	</beans:bean>
+	
+	<beans:bean id="dataSource"
+	            class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<beans:property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+		<beans:property name="url" value="jdbc:mysql://localhost:3306/springmvcDB?serverTimezone=UTC"/>
+		<beans:property name="username" value="root"/>
+		<beans:property name="password" value="9290"/>            
+	</beans:bean>
+	
+	<beans:bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<beans:property name="dataSource" ref="dataSource"/>
+	</beans:bean>
+	
+</beans:beans>

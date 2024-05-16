@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<flow xmlns="http://www.springframework.org/schema/webflow"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.springframework.org/schema/webflow
+      http://www.springframework.org/schema/webflow/spring-webflow.xsd">
+
+<var name="order" class="com.springmvc.domain.Order" />
+   
+   <action-state id="addCartToOrder">
+      <evaluate expression="cartServiceImpl.validateCart(requestParameters.cartId)" result="order.cart" />
+      <transition to="orderCartWarning" on-exception="com.springmvc.exception.CartException" />
+      <transition to="orderCustomerInfo" />
+   </action-state>
+
+   <view-state id="orderCustomerInfo" model="order">
+      <transition on="customerInfo" to="orderShippingInfo" />
+   </view-state>
+
+   <view-state id="orderShippingInfo" model="order">
+      <transition on="shippingInfo" to="orderConfirmation" />
+      <transition on="backToCustomerInfo" to="orderCustomerInfo" />
+   </view-state>
+
+   <view-state id="orderConfirmation">
+      <transition on="orderConfirmed" to="confirmOrder" />
+      <transition on="backToShippingInfo" to="orderShippingInfo" />
+   </view-state>
+
+   <action-state id="confirmOrder">
+      <evaluate expression="orderServiceImpl.saveOrder(order)" result="order.orderId"/>
+      <transition to="orderFinished" />
+   </action-state>
+
+   <view-state id="orderCartWarning">
+      <transition to="endState"/>
+   </view-state>
+
+   <view-state id="orderFinished" model="order">
+      <transition to="endState"/>
+   </view-state>
+
+   <end-state id="endState"/>	
+
+   <end-state id="orderCancelled" view = "orderCancelled.jsp"/> 
+
+   <global-transitions>
+      <transition on = "cancel" to="endState" />
+   </global-transitions>
+</flow>
